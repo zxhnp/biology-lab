@@ -1,0 +1,25 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "生物实验",
+  "version": "0.1.0",
+  "identifier": "cn.biology-lab.desktop",
+  "mainBinaryName": "biology-lab",
+  "build": {
+    "beforeDevCommand": "npm run dev",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [{ "label": "main", "title": "生物实验", "width": 1366, "height": 768, "minWidth": 1024, "minHeight": 640, "center": true, "backgroundColor": "#262a28" }],
+    "security": { "csp": "default-src 'self'; img-src 'self' asset: http://asset.localhost data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src ipc: http://ipc.localhost" }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["nsis"],
+    "category": "Education",
+    "shortDescription": "高中生物虚拟实验演示",
+    "icon": ["icons/icon.ico", "icons/icon.png"],
+    "windows": { "webviewInstallMode": { "type": "offlineInstaller" }, "nsis": { "languages": ["SimpChinese"], "displayLanguageSelector": false, "installMode": "currentUser" } }
+  }
+}

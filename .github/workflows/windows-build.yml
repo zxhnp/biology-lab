@@ -1,0 +1,39 @@
+name: Windows 构建
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+      - name: 安装前端依赖
+        run: npm ci
+      - name: 核心逻辑测试
+        timeout-minutes: 1
+        run: npm test
+      - name: 构建 Windows 程序与离线安装包
+        run: npm run tauri build -- -- --locked
+      - name: 保存 Windows 安装包
+        uses: actions/upload-artifact@v4
+        with:
+          name: biology-lab-windows-x64
+          path: |
+            src-tauri/target/release/biology-lab.exe
+            src-tauri/target/release/bundle/nsis/*-setup.exe
+          if-no-files-found: error
