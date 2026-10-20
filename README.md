@@ -24,7 +24,17 @@ npm run tauri dev
 npm run tauri build
 ```
 
-GitHub 的“Windows 构建”工作流可手动触发，或由 `v*` 标签触发；生成 Windows 程序和 NSIS 离线安装包，保存在 Actions artifacts，不自动发布 Release。
+GitHub 的“Windows 构建与发布”工作流可手动触发，或由推送 `v*` 标签触发。手动触发只构建并保存 Actions artifacts；推送标签会在测试、构建成功后自动发布正式 Release，标题为“生物实验 v版本号”，附带 Windows x64 NSIS 离线安装包。程序 EXE 和安装包同时保留在 Actions artifacts。只需内置 `GITHUB_TOKEN`，无需个人 Token。
+
+发布前同步 `package.json`、`package-lock.json`、`src-tauri/Cargo.toml`、`src-tauri/Cargo.lock` 和 `src-tauri/tauri.conf.json` 中的项目版本并提交；标签必须等于 `v` 加项目版本，且前端版本与 Tauri 版本一致，否则工作流提前失败。例如版本为 `0.1.0` 且尚无此标签时，在包含发布工作流的提交上执行：
+
+```powershell
+git push origin main
+git tag v0.1.0
+git push origin v0.1.0
+```
+
+仅本地创建 tag 不会触发发布，须推送至 GitHub。到仓库 Actions 查看“Windows 构建与发布”结果，成功后在 Releases 下载安装包。本次配置调整未创建标签或实际发布，云端打包与安装仍需以实际运行为准。
 
 当前验证：前端构建和 8 项测试通过，浏览器中已走通两阶段操作，以及滤纸接触、晾干、回拨、暂停与重置。工作流尚未实际运行；本机桌面编译因构建进程找不到 `link.exe` 未通过，`cargo fmt` 因缺少 rustfmt 组件未运行成功。没有自动安装工具或修改系统环境。
 
