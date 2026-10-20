@@ -6,7 +6,7 @@ withDefaults(defineProps<{ label?: string; decorative?: boolean }>(), {
 </script>
 
 <template>
-  <img class="lab-beaker" src="/assets/glass-beaker-filled.png" :alt="decorative ? '' : label" :aria-hidden="decorative ? true : undefined" draggable="false" />
+  <img class="lab-beaker" src="/assets/glass-beaker-clear.png" :alt="decorative ? '' : label" :aria-hidden="decorative ? true : undefined" draggable="false" />
 </template>
 
 <style scoped>
