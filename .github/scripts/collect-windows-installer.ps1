@@ -16,6 +16,7 @@ if ($installers.Count -ne 1) {
 # 仅重命名发布文件，中文产品名继续由 Tauri/NSIS 配置决定。
 $outputDirectory = Join-Path $projectRoot 'release-assets'
 New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
-$outputPath = Join-Path $outputDirectory "biology-lab_$($package.version)_x64_$Variant-setup.exe"
+$variantSuffix = if ($Variant -eq 'with-webview2') { '_with-webview2' } else { '' }
+$outputPath = Join-Path $outputDirectory "biology-lab_$($package.version)_x64$variantSuffix-setup.exe"
 Copy-Item -LiteralPath $installers[0].FullName -Destination $outputPath
 Write-Output $outputPath

@@ -29,7 +29,7 @@ GitHub 的“Windows 构建与发布”工作流可手动触发，或由推送 `
 以 `0.1.0` 为例，Release 提供：
 
 - `biology-lab_0.1.0_x64_with-webview2-setup.exe`：包含 WebView2 离线运行时，适合离线电脑。
-- `biology-lab_0.1.0_x64_without-webview2-setup.exe`：不包含或下载 WebView2，适合已经安装该运行时的电脑。
+- `biology-lab_0.1.0_x64-setup.exe`：不包含或下载 WebView2，适合已经安装该运行时的电脑。
 
 两种安装包仅下载文件名为英文，安装界面、开始菜单、卸载列表和程序窗口均显示“生物实验”。第二种通过 `src-tauri/tauri.no-webview.conf.json` 覆盖 WebView2 安装选项，复用第一次构建的程序；收集脚本只更改输出文件名，不更改产品名。
 
