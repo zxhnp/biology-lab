@@ -40,30 +40,52 @@ jobs:
         timeout-minutes: 1
         run: npm test
       - name: 构建 Windows 程序与离线安装包
-        if: github.event_name == 'workflow_dispatch'
         run: npm run tauri build -- -- --locked
-      - name: 构建并发布正式 Release
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-        uses: tauri-apps/tauri-action@v0.6.2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tauriScript: npm run tauri
-          args: -- --locked
-          tagName: ${{ github.ref_name }}
-          releaseName: 生物实验 ${{ github.ref_name }}
-          releaseBody: |
-            生物实验桌面端 ${{ github.ref_name }}
-
-            安装包由 GitHub Actions 自动构建，适用于 Windows 10/11 x64。
-            请下载下方 NSIS 安装包，包含离线 WebView2 运行环境。
-          releaseDraft: false
-          prerelease: false
-      - name: 保存 Windows 安装包
+      - name: 收集包含 WebView2 的安装包
+        shell: pwsh
+        run: ./.github/scripts/collect-windows-installer.ps1 -Variant with-webview2
+      - name: 打包不含 WebView2 的安装包
+        run: npm run tauri bundle -- --config src-tauri/tauri.no-webview.conf.json
+      - name: 收集不含 WebView2 的安装包
+        shell: pwsh
+        run: ./.github/scripts/collect-windows-installer.ps1 -Variant without-webview2
+      - name: 检查双安装包完整性
+        shell: pwsh
+        run: |
+          $package = Get-Content -LiteralPath 'package.json' -Raw | ConvertFrom-Json
+          foreach ($variant in @('with-webview2', 'without-webview2')) {
+            $path = "release-assets/biology-lab_$($package.version)_x64_$variant-setup.exe"
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) { throw "缺少安装包：$path" }
+          }
+          if (@(Get-ChildItem -LiteralPath 'release-assets' -File -Filter '*.exe').Count -ne 2) {
+            throw '发布目录必须恰有两个安装包。'
+          }
+      - name: 保存 Windows 程序与双安装包
         uses: actions/upload-artifact@v4
         with:
           name: biology-lab-windows-x64
           path: |
             src-tauri/target/release/biology-lab.exe
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+            release-assets/*.exe
           if-no-files-found: error
+      - name: 发布正式 Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: 生物实验 ${{ github.ref_name }}
+          body: |
+            生物实验桌面端 ${{ github.ref_name }}
+
+            安装包由 GitHub Actions 自动构建，适用于 Windows 10/11 x64。
+            - with-webview2：包含 WebView2 离线运行时，适合离线电脑。
+            - without-webview2：不包含或下载 WebView2，电脑须已安装该运行时。
+            两种安装包的安装界面及安装后均显示中文名“生物实验”。
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/*_with-webview2-setup.exe
+            release-assets/*_without-webview2-setup.exe
