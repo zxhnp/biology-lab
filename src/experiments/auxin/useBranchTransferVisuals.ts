@@ -1,8 +1,8 @@
 import { shallowRef, watch } from 'vue'
-import type { StepIndex } from './data'
+import type { TimedStepId } from './data'
 
 interface TransferVisualProps {
-  step: StepIndex
+  step: TimedStepId
   moved: boolean
   dryingProgress: number
   paused: boolean
@@ -10,7 +10,7 @@ interface TransferVisualProps {
 }
 
 export function useBranchTransferVisuals(props: TransferVisualProps) {
-  const paperContact = shallowRef(props.step === 1 && props.moved)
+  const paperContact = shallowRef(props.step === 'dry' && props.moved)
   const animateWet = shallowRef(false)
   const animateTransfer = shallowRef(false)
   let awaitingLanding = false
@@ -18,14 +18,14 @@ export function useBranchTransferVisuals(props: TransferVisualProps) {
   watch([() => props.step, () => props.moved], ([step, moved], [previousStep, previousMoved]) => {
     animateWet.value = false
     animateTransfer.value = step === previousStep && moved && !previousMoved && !props.reducedMotion
-    awaitingLanding = step === 1 && animateTransfer.value
-    paperContact.value = step === 1 && moved && !awaitingLanding
+    awaitingLanding = step === 'dry' && animateTransfer.value
+    paperContact.value = step === 'dry' && moved && !awaitingLanding
   }, { flush: 'sync' })
 
   function finishLanding(event: TransitionEvent) {
     if (event.target !== event.currentTarget || event.propertyName !== 'transform' || !awaitingLanding) return
     awaitingLanding = false
-    if (props.step !== 1 || !props.moved) return
+    if (props.step !== 'dry' || !props.moved) return
     paperContact.value = true
     animateWet.value = event.type === 'transitionend'
   }
@@ -33,7 +33,7 @@ export function useBranchTransferVisuals(props: TransferVisualProps) {
   watch(() => props.reducedMotion, reduced => {
     if (!reduced) return
     awaitingLanding = false
-    paperContact.value = props.step === 1 && props.moved
+    paperContact.value = props.step === 'dry' && props.moved
     animateWet.value = false
     animateTransfer.value = false
   }, { flush: 'sync' })

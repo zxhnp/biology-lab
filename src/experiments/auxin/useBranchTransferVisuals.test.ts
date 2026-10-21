@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import { effectScope, reactive } from 'vue'
 import { useBranchTransferVisuals } from './useBranchTransferVisuals'
-import type { StepIndex } from './data'
+import type { TimedStepId } from './data'
 
 function createVisuals(reducedMotion = false, moved = false) {
-  const props = reactive({ step: 1 as StepIndex, moved, dryingProgress: 0, paused: false, reducedMotion })
+  const props = reactive({ step: 'dry' as TimedStepId, moved, dryingProgress: 0, paused: false, reducedMotion })
   const scope = effectScope()
   const visuals = scope.run(() => useBranchTransferVisuals(props))!
   const target = {} as EventTarget
@@ -24,17 +24,17 @@ describe('滤纸接触与视觉状态恢复', () => {
       expect(visuals.paperContact.value).toBe(true)
       expect(visuals.animateWet.value).toBe(true)
 
-      props.step = 0
+      props.step = 'soak'
       visuals.finishLanding(event())
       expect(visuals.paperContact.value).toBe(false)
-      props.step = 1
+      props.step = 'dry'
       expect(visuals.paperContact.value).toBe(true)
       expect(visuals.animateWet.value).toBe(false)
       expect(visuals.animateTransfer.value).toBe(false)
 
       props.moved = false
       props.moved = true
-      props.step = 0
+      props.step = 'soak'
       props.moved = false
       visuals.finishLanding(event())
       expect(visuals.paperContact.value).toBe(false)

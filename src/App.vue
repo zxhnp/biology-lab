@@ -36,7 +36,7 @@ function start() { started.value = true; screen.value = 'run' }
   <FitStage>
     <ExperimentCatalog v-if="screen === 'catalog'" :experiments="experiments" @select="select" />
     <template v-else-if="selected">
-      <component :is="selected.runtime" v-if="started" v-show="screen === 'run'" :key="selected.id" :paused="discussionOpen || screen !== 'run'" @discussion="discussionOpen = true" />
+      <component :is="selected.runtime" v-if="started" v-show="screen === 'run'" :key="selected.id" :active="screen === 'run'" :paused="discussionOpen || screen !== 'run'" @discussion="discussionOpen = true" />
       <header class="experiment-header"><button class="back-button icon-button" :aria-label="screen === 'run' ? '返回实验资料' : '返回实验目录'" @click="back"><LabIcon name="back" :size="36" /></button><h1>{{ selected.title }}</h1><button class="close-experiment icon-button" aria-label="关闭实验并返回目录" @click="catalog"><LabIcon name="close" :size="36" /><span>关闭</span></button></header>
       <ExperimentIntroduction v-if="screen === 'intro'" :key="selected.id" :experiment="selected" :started="started" @start="start" />
     </template>

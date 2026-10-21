@@ -2,14 +2,14 @@
 import { computed } from 'vue'
 import LabBeaker from '../../components/LabBeaker.vue'
 import FilterPaper from '../../components/FilterPaper.vue'
-import { concentrationLabel, type StepIndex, type Triplicate } from './data'
+import { concentrationLabel, type TimedStepId, type Triplicate } from './data'
 import { useBranchTransferVisuals } from './useBranchTransferVisuals'
 
 const props = defineProps<{
   group: number
   branchNumber: number
   concentration: number
-  step: StepIndex
+  step: TimedStepId
   moved: boolean
   roots: Triplicate
   dryingProgress: number
@@ -17,8 +17,8 @@ const props = defineProps<{
   reducedMotion: boolean
 }>()
 defineEmits<{ transfer: [group: number] }>()
-const seated = computed(() => props.step === 1 ? !props.moved : props.moved)
-const action = computed(() => props.step === 1 ? '移至滤纸' : props.step === 2 ? '移入完全营养液' : '移入对应溶液')
+const seated = computed(() => props.step === 'dry' ? !props.moved : props.moved)
+const action = computed(() => props.step === 'dry' ? '移至滤纸' : props.step === 'culture' ? '移入清水' : '移入对应溶液')
 const { paperContact, animateWet, animateTransfer, finishLanding } = useBranchTransferVisuals(props)
 
 function rootPath(stem: number, root: number) {
@@ -32,21 +32,21 @@ function rootPath(stem: number, root: number) {
 
 <template>
   <div class="branch-group">
-    <FilterPaper v-if="step === 1" class="group-paper" :contacted="paperContact" :drying-progress="dryingProgress" :animate="animateWet" :paused="paused" :reduced-motion="reducedMotion" />
-    <span v-if="step === 1" class="paper-label"><span>滤纸</span></span>
+    <FilterPaper v-if="step === 'dry'" class="group-paper" :contacted="paperContact" :drying-progress="dryingProgress" :animate="animateWet" :paused="paused" :reduced-motion="reducedMotion" />
+    <span v-if="step === 'dry'" class="paper-label"><span>滤纸</span></span>
     <button class="branches" :class="{ seated, transferred: moved, moving: animateTransfer }" :disabled="moved" :aria-label="`${action}：${concentrationLabel(concentration)}组`" :data-testid="`transfer-${group}`" @click="$emit('transfer', group)" @transitionend="finishLanding" @transitioncancel="finishLanding">
       <img v-for="stem in 3" :key="stem" src="/assets/rose-cutting.png" alt="" draggable="false" :style="{ left: `${(stem - 1) * 29}px` }" />
       <svg class="roots" viewBox="0 0 140 285" aria-hidden="true">
         <g v-for="(count, stem) in roots" :key="stem"><path v-for="root in count" :key="root" :d="rootPath(stem, root - 1)" /></g>
       </svg>
     </button>
-    <span v-if="!seated && step !== 1" class="branch-label"><template v-if="step === 0">枝条{{ branchNumber }}</template><template v-else>{{ concentrationLabel(concentration) }}<br />浸泡过的枝条</template></span>
+    <span v-if="!seated && step !== 'dry'" class="branch-label"><template v-if="step === 'soak'">枝条{{ branchNumber }}</template><template v-else>{{ concentrationLabel(concentration) }}<br />浸泡过的枝条</template></span>
     <div class="beaker-art" aria-hidden="true"><LabBeaker decorative /></div>
     <div class="group-label">
-      <span v-if="step === 2">完全营养液</span>
-      <span>{{ step === 2 ? concentrationLabel(concentration) : concentration === 0 ? '清水' : `${concentration}ppm` }}</span>
-      <span v-if="step !== 2 && concentration !== 0">α-萘乙酸溶液</span>
-      <span v-if="step === 2 && moved">浸泡过的枝条</span>
+      <span v-if="step === 'culture'">清水</span>
+      <span>{{ concentrationLabel(concentration) }}</span>
+      <span v-if="step !== 'culture'">{{ concentration === 0 ? '清水' : 'α-萘乙酸溶液' }}</span>
+      <span v-if="step === 'culture' && moved">浸泡过的枝条</span>
       <span v-else-if="seated">枝条</span>
     </div>
   </div>

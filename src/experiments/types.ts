@@ -3,7 +3,6 @@ import type { Component } from 'vue'
 export interface Discussion {
   question: string
   answer: string[]
-  supplement?: boolean
 }
 
 export interface Material {

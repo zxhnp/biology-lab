@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, shallowRef } from 'vue'
 import LabIcon from '../../components/LabIcon.vue'
-import { averages, concentrationLabel, type AuxinPhase } from './data'
+import { averages, concentrationLabel, concentrationValue, concentrationUnit, type AuxinPhase } from './data'
 
 const props = defineProps<{ phase: AuxinPhase; view: 'chart' | 'table' }>()
 defineEmits<{ toggle: [] }>()
@@ -24,13 +24,13 @@ const chartLabel = computed(() => props.phase.concentrations.map((c, i) => `${co
       <g v-for="(point, index) in points" :key="phase.concentrations[index]" tabindex="0" @mouseenter="hovered = index" @mouseleave="hovered = null" @focus="hovered = index" @blur="hovered = null">
         <title>{{ concentrationLabel(phase.concentrations[index]) }}：{{ point.value }}</title>
         <circle :cx="point.x" :cy="point.y" r="14" fill="transparent" /><circle :cx="point.x" :cy="point.y" r="5.5" fill="#43cd8e" />
-        <text :x="point.x" y="287" text-anchor="middle">{{ concentrationLabel(phase.concentrations[index]) }}</text>
+        <text :x="point.x" y="287" text-anchor="middle">{{ concentrationValue(phase.concentrations[index]) }}</text>
         <g v-if="hovered === index" class="tooltip"><rect :x="point.x - 35" :y="point.y - 40" width="70" height="28" rx="4" /><text :x="point.x" :y="point.y - 20" text-anchor="middle">{{ point.value }}</text></g>
       </g>
-      <text x="1050" y="310" text-anchor="end" class="axis-title">α-萘乙酸浓度</text>
+      <text x="1050" y="310" text-anchor="end" class="axis-title">α-萘乙酸浓度（{{ concentrationUnit }}）</text>
     </svg>
     <div v-else class="table-wrap" data-testid="root-table">
-      <table><caption class="sr-only">{{ phase.name }}逐日生根数，浓度单位 ppm</caption><thead><tr><th colspan="2">时间 / 生根数 / 浓度</th><th v-for="c in phase.concentrations" :key="c">{{ c === 0 ? '清水' : c }}</th></tr></thead>
+      <table><caption class="sr-only">{{ phase.name }}逐日生根数，浓度单位 {{ concentrationUnit }}</caption><thead><tr><th colspan="2">时间 / 生根数 / 浓度（{{ concentrationUnit }}）</th><th v-for="c in phase.concentrations" :key="c">{{ concentrationValue(c) }}</th></tr></thead>
         <tbody v-for="(day, dayIndex) in phase.days" :key="dayIndex" :class="{ alternate: dayIndex % 2 === 1 }"><tr v-for="(row, rowIndex) in day" :key="rowIndex"><th v-if="rowIndex === 0" rowspan="3" scope="rowgroup">第{{ ['一', '二', '三', '四'][dayIndex] }}天</th><th scope="row">{{ rowIndex + 1 }}</th><td v-for="(value, index) in row" :key="index">{{ value }}</td></tr></tbody>
         <tfoot><tr><th colspan="2">平均</th><td v-for="(value, index) in values" :key="index">{{ value }}</td></tr></tfoot>
       </table>

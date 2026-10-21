@@ -19,6 +19,7 @@ export const experiments: readonly ExperimentDefinition[] = [
       { name: 'α-萘乙酸溶液', asset: 'glass-beaker-filled.png', kind: 'beaker' },
       { name: '滤纸', asset: 'filter-paper.png', kind: 'paper' },
       { name: '清水', asset: 'glass-beaker-filled.png', kind: 'beaker' },
+      { name: '小剪刀', asset: 'pruning-scissors-open.png' },
     ],
     discussions: [
       {
@@ -34,7 +35,6 @@ export const experiments: readonly ExperimentDefinition[] = [
       {
         question: '生长素类似物促进植物生根的最适浓度，会因为季节的变化和枝条的老幼而有差异吗？',
         answer: ['会。季节、枝条成熟程度等会影响生根反应，实际适宜浓度应在所选材料和培养条件下通过实验确定。'],
-        supplement: true,
       },
     ],
   },

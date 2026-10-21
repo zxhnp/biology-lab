@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref, shallowRef, watch, type Ref } from 'vue'
-import { phases, type PhaseId, type StepIndex } from './data'
-import { canSelectStep, createSession, moveGroup, setProgress, stepComplete } from './model'
+import { phases, type PhaseId, type StepId } from './data'
+import { beginPruning as beginGroup, cancelPruning as cancelGroup, canSelectStep, createSession, finishPruning as finishGroup, moveGroup, setProgress, stepComplete } from './model'
 
 export function useAuxinExperiment(paused: Ref<boolean>) {
   const sessions = ref(createSession())
@@ -11,6 +11,9 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
   const notice = shallowRef('')
   let noticeTimer: ReturnType<typeof setTimeout> | undefined
   let timer: ReturnType<typeof setInterval> | undefined
+  // 标识在重置后仍递增，旧动画无法命中新会话的同一组枝条。
+  let pruningToken = 0
+  let disposed = false
 
   function inform(message: string) {
     notice.value = message
@@ -18,32 +21,51 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
     noticeTimer = setTimeout(() => { notice.value = '' }, 2600)
   }
 
-  const allMoved = computed(() => state.value.moved[state.value.step].every(Boolean))
+  const allMoved = computed(() => state.value.step !== 'prune' && state.value.moved[state.value.step].every(Boolean))
   const complete = computed(() => stepComplete(state.value, state.value.step))
-  const progress = computed(() => state.value.progress[state.value.step])
+  const progress = computed(() => state.value.step === 'prune' ? 0 : state.value.progress[state.value.step])
+
+  function cancelPruning() {
+    cancelGroup(state.value)
+  }
+
+  function beginPruning(group: number) {
+    if (disposed || paused.value) return
+    beginGroup(state.value, group, ++pruningToken)
+  }
+
+  function finishPruning(group: number, token: number) {
+    if (disposed || paused.value) return
+    if (finishGroup(state.value, group, token) && complete.value) inform('全部插条已处理完成')
+  }
 
   function selectPhase(id: PhaseId) {
+    if (disposed || !phases.some(item => item.id === id)) return
+    cancelPruning()
     phaseId.value = id
     playing.value = true
+    clearTimeout(noticeTimer)
     notice.value = ''
   }
 
-  function selectStep(step: StepIndex) {
+  function selectStep(step: StepId) {
+    if (disposed) return
     if (!canSelectStep(state.value, step)) {
-      inform('请先完成前一步的枝条操作和计时')
+      inform(state.value.step === 'prune' ? '请先处理完全部7组插条' : '请先完成前一步的枝条操作和计时')
       return
     }
+    cancelPruning()
     state.value.step = step
     playing.value = true
   }
 
   function transfer(group: number) {
-    if (paused.value) return
+    if (disposed || paused.value) return
     if (moveGroup(state.value, group)) playing.value = true
   }
 
   function seek(value: number) {
-    if (paused.value) return
+    if (disposed || paused.value) return
     setProgress(state.value, value)
   }
 
@@ -59,9 +81,11 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
     }, 100)
   }, { flush: 'sync' })
 
-  watch(paused, value => { if (value) playing.value = false })
+  watch(paused, value => { if (value) playing.value = false }, { flush: 'sync' })
 
   function reset() {
+    if (disposed) return
+    cancelPruning()
     clearInterval(timer)
     clearTimeout(noticeTimer)
     playing.value = false
@@ -71,6 +95,11 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
     inform('实验已重新开始')
   }
 
-  onScopeDispose(() => { clearInterval(timer); clearTimeout(noticeTimer) })
-  return { phase, phaseId, state, progress, allMoved, complete, playing, notice, selectPhase, selectStep, transfer, seek, reset }
+  onScopeDispose(() => {
+    disposed = true
+    cancelPruning()
+    clearInterval(timer)
+    clearTimeout(noticeTimer)
+  })
+  return { phase, phaseId, state, progress, allMoved, complete, playing, notice, selectPhase, selectStep, transfer, seek, reset, beginPruning, finishPruning, cancelPruning }
 }

@@ -1,6 +1,6 @@
 [package]
 name = "biology-lab"
-version = "0.1.0"
+version = "0.1.1"
 description = "高中生物虚拟实验演示"
 edition = "2021"
 

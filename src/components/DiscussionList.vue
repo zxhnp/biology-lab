@@ -7,7 +7,7 @@ defineProps<{ questions: Discussion[] }>()
   <div class="discussion-list">
     <details v-for="(item, index) in questions" :key="item.question">
       <summary><span class="question-number">{{ index + 1 }}</span><span class="question-text">{{ item.question }}</span><span class="expand">展开</span><span class="collapse">收起</span></summary>
-      <div class="answer"><small v-if="item.supplement" class="supplement">教学补充（参考视频未展开此题答案）</small><p v-for="line in item.answer" :key="line">{{ line }}</p></div>
+      <div class="answer"><p v-for="line in item.answer" :key="line">{{ line }}</p></div>
     </details>
   </div>
 </template>
@@ -25,5 +25,4 @@ summary::-webkit-details-marker { display: none; }
 details[open] .collapse { display: inline; }
 .answer { padding: 5px 0 0 37px; color: #52ca8b; font-size: .9em; line-height: 1.6; }
 .answer p { margin: 4px 0; }
-.supplement { color: #b9c3bb; font-size: .72em; display: block; margin-bottom: 6px; }
 </style>
