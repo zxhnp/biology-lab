@@ -40,13 +40,13 @@ function rootPath(stem: number, root: number) {
         <g v-for="(count, stem) in roots" :key="stem"><path v-for="root in count" :key="root" :d="rootPath(stem, root - 1)" /></g>
       </svg>
     </button>
-    <span v-if="!seated && step !== 'dry'" class="branch-label"><template v-if="step === 'soak'">枝条{{ branchNumber }}</template><template v-else>{{ concentrationLabel(concentration) }}<br />浸泡过的枝条</template></span>
+    <span v-if="!seated && step !== 'dry'" class="branch-label"><template v-if="step === 'soak'">枝条{{ branchNumber }}</template><template v-else>{{ concentrationLabel(concentration) }}<br />α-萘乙酸<br />浸泡过的枝条</template></span>
     <div class="beaker-art" aria-hidden="true"><LabBeaker decorative /></div>
-    <div class="group-label">
+    <div class="group-label" :class="{ culture: step === 'culture' }">
       <span v-if="step === 'culture'">清水</span>
       <span>{{ concentrationLabel(concentration) }}</span>
       <span v-if="step !== 'culture'">{{ concentration === 0 ? '清水' : 'α-萘乙酸溶液' }}</span>
-      <span v-if="step === 'culture' && moved">浸泡过的枝条</span>
+      <span v-if="step === 'culture' && moved">α-萘乙酸<br />浸泡过的枝条</span>
       <span v-else-if="seated">枝条</span>
     </div>
   </div>
@@ -71,5 +71,6 @@ function rootPath(stem: number, root: number) {
 .paper-label > span { padding: 1px 5px; background: var(--surface); }
 .branch-label { position: absolute; top: 268px; width: 145px; left: 0; text-align: center; font-size: 18px; line-height: 1.4; }
 .group-label { position: absolute; top: 577px; left: -18px; width: 181px; text-align: center; font-size: 22px; line-height: 1.23; display: grid; }
+.group-label.culture { top: 570px; left: 0; width: 145px; font-size: 18px; line-height: 1.2; }
 @media (prefers-reduced-motion: reduce) { .branches { transition-duration: 1ms; } }
 </style>

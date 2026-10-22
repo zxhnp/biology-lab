@@ -1,6 +1,6 @@
 import { computed, onScopeDispose, ref, shallowRef, watch, type Ref } from 'vue'
 import { phases, type PhaseId, type StepId } from './data'
-import { beginPruning as beginGroup, cancelPruning as cancelGroup, canSelectStep, createSession, finishPruning as finishGroup, moveGroup, setProgress, stepComplete } from './model'
+import { beginPruning as beginGroup, cancelPruning as cancelGroup, canSelectPhase as canEnterPhase, canSelectStep, createSession, finishPruning as finishGroup, moveGroup, setProgress, stepComplete } from './model'
 
 export function useAuxinExperiment(paused: Ref<boolean>) {
   const sessions = ref(createSession())
@@ -39,8 +39,16 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
     if (finishGroup(state.value, group, token) && complete.value) inform('全部插条已处理完成')
   }
 
+  function canSelectPhase(id: PhaseId) {
+    return canEnterPhase(sessions.value, id)
+  }
+
   function selectPhase(id: PhaseId) {
     if (disposed || !phases.some(item => item.id === id)) return
+    if (!canSelectPhase(id)) {
+      inform('请先完成预实验的全部操作和计时')
+      return
+    }
     cancelPruning()
     phaseId.value = id
     playing.value = true
@@ -101,5 +109,5 @@ export function useAuxinExperiment(paused: Ref<boolean>) {
     clearInterval(timer)
     clearTimeout(noticeTimer)
   })
-  return { phase, phaseId, state, progress, allMoved, complete, playing, notice, selectPhase, selectStep, transfer, seek, reset, beginPruning, finishPruning, cancelPruning }
+  return { phase, phaseId, state, progress, allMoved, complete, playing, notice, canSelectPhase, selectPhase, selectStep, transfer, seek, reset, beginPruning, finishPruning, cancelPruning }
 }

@@ -16,7 +16,7 @@ const resetOpen = shallowRef(false)
 const operationPaused = computed(() => props.paused || !props.active || resetOpen.value)
 const {
   phase, phaseId, state, progress, allMoved, complete, playing, notice,
-  selectPhase, selectStep, transfer, seek, reset, beginPruning, finishPruning, cancelPruning,
+  canSelectPhase, selectPhase, selectStep, transfer, seek, reset, beginPruning, finishPruning, cancelPruning,
 } = useAuxinExperiment(operationPaused)
 const panelOpen = shallowRef(true)
 const reducedMotion = useReducedMotion()
@@ -60,7 +60,7 @@ function confirmReset() { resetOpen.value = false; reset(); panelOpen.value = tr
       <button class="clock-button" :aria-label="playing && !complete ? '暂停计时' : '继续计时'" :disabled="complete" @click="playing = !playing"><LabIcon :name="playing && !complete ? 'pause' : complete ? 'check' : 'play'" :size="25" /></button>
       <span class="time-total">{{ timing.duration }}{{ timing.unit }}</span><span class="time-current">{{ progressText }}</span>
     </div>
-    <nav class="phase-tabs" aria-label="实验阶段"><button v-for="item in phases" :key="item.id" :class="{ active: phaseId === item.id }" :aria-pressed="phaseId === item.id" @click="selectPhase(item.id)">{{ item.prefix }}. {{ item.name }}</button></nav>
+    <nav class="phase-tabs" aria-label="实验阶段"><button v-for="item in phases" :key="item.id" :class="{ active: phaseId === item.id }" :disabled="!canSelectPhase(item.id)" :title="canSelectPhase(item.id) ? undefined : '请先完成预实验的全部操作和计时'" :aria-pressed="phaseId === item.id" @click="selectPhase(item.id)">{{ item.prefix }}. {{ item.name }}</button></nav>
     <div class="lab-actions"><button @click="$emit('discussion')"><LabIcon name="discuss" /><span>讨论要点</span></button><span class="action-divider" /><button @click="resetOpen = true; playing = false"><LabIcon name="restart" /><span>重新开始</span></button></div>
     <RestartDialog v-if="resetOpen" @cancel="resetOpen = false" @confirm="confirmReset" />
   </main>
@@ -84,6 +84,7 @@ function confirmReset() { resetOpen.value = false; reset(); panelOpen.value = tr
 .phase-tabs { position: absolute; left: 24px; bottom: 20px; display: flex; gap: 22px; z-index: 7; }
 .phase-tabs button { font-size: 26px; border: 1px solid #555d57; border-radius: 5px; padding: 14px 16px; background: #1e2321; box-shadow: 0 2px 5px #0008; }
 .phase-tabs button.active { background: var(--green-dark); border-color: #43ba71; }
+.phase-tabs button:disabled { color: #929b95; opacity: .55; cursor: not-allowed; box-shadow: none; }
 .lab-actions { position: absolute; right: 25px; bottom: 22px; display: flex; align-items: center; gap: 24px; }
 .lab-actions button { border: 0; background: none; color: #d0d5d1; display: grid; justify-items: center; gap: 5px; font-size: 20px; padding: 4px; }
 .lab-actions button:hover { color: #fff; }

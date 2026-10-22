@@ -41,6 +41,16 @@ export function canSelectStep(state: PhaseState, step: StepId): boolean {
   return index >= 0 && phase!.steps.slice(0, index).every(previous => stepComplete(state, previous))
 }
 
+export function phaseComplete(state: PhaseState): boolean {
+  const phase = phases.find(item => item.id === state.phaseId)
+  return !!phase && phase.steps.every(step => stepComplete(state, step))
+}
+
+export function canSelectPhase(sessions: Record<PhaseId, PhaseState>, id: PhaseId): boolean {
+  const index = phases.findIndex(phase => phase.id === id)
+  return index >= 0 && phases.slice(0, index).every(phase => phaseComplete(sessions[phase.id]))
+}
+
 export function beginPruning(state: PhaseState, group: number, token: number): boolean {
   if (state.step !== 'prune' || !canSelectStep(state, 'prune') || state.activePruning) return false
   if (!Number.isInteger(group) || group < 0 || group >= state.pruned.length || state.pruned[group]) return false

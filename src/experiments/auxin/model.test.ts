@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { effectScope, ref } from 'vue'
 import { vi } from 'vitest'
 import { averages, concentrationLabel, concentrationValue, concentrationUnit, durations, durationUnits, phases, rootsAtDay, stepDescriptions, type StepId } from './data'
-import { beginPruning, cancelPruning, canSelectStep, createSession, finishPruning, moveGroup, setProgress, stepComplete, type PhaseState } from './model'
+import { beginPruning, cancelPruning, canSelectPhase, canSelectStep, createSession, finishPruning, moveGroup, phaseComplete, setProgress, stepComplete, type PhaseState } from './model'
 import { useAuxinExperiment } from './useAuxinExperiment'
 
 describe('视频原始数据', () => {
@@ -52,6 +52,83 @@ function completePruning(lab: ReturnType<typeof useAuxinExperiment>) {
     lab.finishPruning(group, lab.state.value.activePruning!.token)
   }
 }
+
+function completeTimedStep(lab: ReturnType<typeof useAuxinExperiment>, step: 'soak' | 'dry' | 'culture') {
+  lab.selectStep(step)
+  for (let group = 0; group < lab.phase.value.concentrations.length; group++) lab.transfer(group)
+  lab.seek(100)
+}
+
+describe('正式实验前置条件', () => {
+  it('预实验各步均需全部操作和计时完成，回看不丢失完成状态', () => {
+    const sessions = createSession()
+    const state = sessions.preliminary
+    expect(canSelectPhase(sessions, 'preliminary')).toBe(true)
+    expect(canSelectPhase(sessions, 'formal')).toBe(false)
+    expect(canSelectPhase(sessions, 'missing' as 'formal')).toBe(false)
+    pruneAll(state)
+    expect(canSelectPhase(sessions, 'formal')).toBe(false)
+    for (const step of ['soak', 'dry', 'culture'] as const) {
+      state.step = step
+      for (let group = 0; group < 6; group++) moveGroup(state, group)
+      expect(canSelectPhase(sessions, 'formal')).toBe(false)
+      moveGroup(state, 6)
+      setProgress(state, 99)
+      expect(canSelectPhase(sessions, 'formal')).toBe(false)
+      setProgress(state, 100)
+      expect(canSelectPhase(sessions, 'formal')).toBe(step === 'culture')
+    }
+    state.step = 'prune'
+    expect(phaseComplete(state)).toBe(true)
+    expect(canSelectPhase(sessions, 'formal')).toBe(true)
+    state.progress.dry = 99
+    expect(canSelectPhase(sessions, 'formal')).toBe(false)
+  })
+
+  it('切换方法拒绝绕过，失败不取消当前修剪或改变播放状态', () => {
+    vi.useFakeTimers()
+    const scope = effectScope()
+    const lab = scope.run(() => useAuxinExperiment(ref(false)))!
+    try {
+      lab.beginPruning(0)
+      const token = lab.state.value.activePruning!.token
+      lab.playing.value = false
+      lab.selectPhase('formal')
+      expect(lab.phaseId.value).toBe('preliminary')
+      expect(lab.state.value.activePruning?.token).toBe(token)
+      expect(lab.playing.value).toBe(false)
+      expect(lab.notice.value).toContain('请先完成预实验')
+    } finally { scope.stop(); vi.useRealTimers() }
+  })
+
+  it('完成后解锁、保留阶段记录，回拨重新锁定，重置清空并锁定', () => {
+    vi.useFakeTimers()
+    const scope = effectScope()
+    const lab = scope.run(() => useAuxinExperiment(ref(false)))!
+    try {
+      completePruning(lab)
+      for (const step of ['soak', 'dry', 'culture'] as const) completeTimedStep(lab, step)
+      expect(lab.canSelectPhase('formal')).toBe(true)
+      lab.selectPhase('formal')
+      expect(lab.phaseId.value).toBe('formal')
+      lab.transfer(0)
+      lab.selectPhase('preliminary')
+      expect(lab.canSelectPhase('formal')).toBe(true)
+      lab.seek(99)
+      expect(lab.canSelectPhase('formal')).toBe(false)
+      lab.selectPhase('formal')
+      expect(lab.phaseId.value).toBe('preliminary')
+      lab.seek(100)
+      lab.selectPhase('formal')
+      expect(lab.state.value.moved.soak[0]).toBe(true)
+      lab.reset()
+      expect(lab.phaseId.value).toBe('preliminary')
+      expect(lab.canSelectPhase('formal')).toBe(false)
+      lab.selectPhase('formal')
+      expect(lab.phaseId.value).toBe('preliminary')
+    } finally { scope.stop(); vi.useRealTimers() }
+  })
+})
 
 describe('修剪完成校验', () => {
   it('开始不计完成，6组不解锁，7组结束才解锁浸泡', () => {
@@ -183,6 +260,9 @@ describe('计时与动画生命周期', () => {
       const stoppedAt = lab.progress.value
       vi.advanceTimersByTime(2000)
       expect(lab.progress.value).toBe(stoppedAt)
+      paused.value = false
+      for (const step of ['soak', 'dry', 'culture'] as const) completeTimedStep(lab, step)
+      paused.value = true
       lab.selectPhase('formal')
       vi.advanceTimersByTime(1000)
       expect(lab.progress.value).toBe(0)
@@ -204,7 +284,7 @@ describe('计时与动画生命周期', () => {
     } finally { scope.stop(); vi.useRealTimers() }
   })
 
-  it('暂停保留当前动画，切换、重置、卸载阻止旧回调', () => {
+  it('暂停保留当前动画，步骤回看、重置、卸载阻止旧回调', () => {
     vi.useFakeTimers()
     const scope = effectScope()
     const paused = ref(false)
@@ -221,8 +301,7 @@ describe('计时与动画生命周期', () => {
       expect(lab.state.value.pruned[0]).toBe(true)
       lab.beginPruning(1)
       const cancelledToken = lab.state.value.activePruning!.token
-      lab.selectPhase('formal')
-      lab.selectPhase('preliminary')
+      lab.selectStep('prune')
       lab.finishPruning(1, cancelledToken)
       expect(lab.state.value.pruned[0]).toBe(true)
       expect(lab.state.value.pruned[1]).toBe(false)
